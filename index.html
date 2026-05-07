@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="One Piece themed exam tracker – Ho Lap College 2025-2026 Finals" />
+  <title>Grand Line Exam Tracker · Elishia</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .fade-in { animation: fadeIn 0.35s ease-out; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback } = React;
+
+    /* ── SVG helpers ─────────────────────────────────────────── */
+    const Ic = ({ children, size = 24, className = "" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+           strokeLinejoin="round" className={className}>
+        {children}
+      </svg>
+    );
+    const Anchor      = p => <Ic {...p}><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></Ic>;
+    const Compass     = p => <Ic {...p}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></Ic>;
+    const MapIcon     = p => <Ic {...p}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></Ic>;
+    const Ship        = p => <Ic {...p}><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 3.2-1.2 5.5-1.2 2.3 0 3 1.2 5.5 1.2 2.3 0 3-1.2 5.5-1.2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/></Ic>;
+    const CheckCircle2= p => <Ic {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Ic>;
+    const Circle      = p => <Ic {...p}><circle cx="12" cy="12" r="10"/></Ic>;
+    const BookOpen    = p => <Ic {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></Ic>;
+    const Quote       = p => <Ic {...p}><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></Ic>;
+    const Flame       = p => <Ic {...p}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></Ic>;
+    const CalIcon     = p => <Ic {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Ic>;
+    const CheckSquare = p => <Ic {...p}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></Ic>;
+    const XIcon       = p => <Ic {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Ic>;
+    const UnlockIcon  = p => <Ic {...p}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></Ic>;
+    const ClockIcon   = p => <Ic {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Ic>;
+
+    /* ── One Piece custom SVGs ───────────────────────────────── */
+    const StrawHatIcon = ({ size = 40 }) => (
+      <svg width={size} height={size} viewBox="0 0 100 100" className="inline-block">
+        <path d="M 10 70 Q 50 85 90 70 Q 95 70 95 75 Q 50 95 5 75 Q 5 70 10 70 Z" fill="#eab308" stroke="#92400e" strokeWidth="3"/>
+        <path d="M 25 70 C 25 30, 75 30, 75 70 Z" fill="#eab308" stroke="#92400e" strokeWidth="3"/>
+        <path d="M 26 65 C 26 55, 74 55, 74 65 Z" fill="#ef4444" stroke="#b91c1c" strokeWidth="2"/>
+      </svg>
+    );
+    const JollyRogerIcon = ({ size = 40 }) => (
+      <svg width={size} height={size} viewBox="0 0 100 100" className="inline-block">
+        <circle cx="50" cy="45" r="20" fill="#1e293b"/>
+        <line x1="20" y1="20" x2="80" y2="80" stroke="#1e293b" strokeWidth="6" strokeLinecap="round"/>
+        <line x1="20" y1="80" x2="80" y2="20" stroke="#1e293b" strokeWidth="6" strokeLinecap="round"/>
+        <path d="M 40 45 Q 50 65 60 45 Z" fill="white"/>
+        <circle cx="42" cy="40" r="4" fill="white"/>
+        <circle cx="58" cy="40" r="4" fill="white"/>
+      </svg>
+    );
+
+    /* ── Data ────────────────────────────────────────────────── */
+    const CREW_MEMBERS = [
+      { name: "Luffy",   role: "Captain",    emoji: "👒", unlockAt:   0, color: "bg-red-500"    },
+      { name: "Zoro",    role: "Swordsman",  emoji: "⚔️", unlockAt:  15, color: "bg-green-600"  },
+      { name: "Nami",    role: "Navigator",  emoji: "🍊", unlockAt:  30, color: "bg-orange-400" },
+      { name: "Usopp",   role: "Sniper",     emoji: "🎯", unlockAt:  45, color: "bg-yellow-500" },
+      { name: "Sanji",   role: "Cook",       emoji: "🍳", unlockAt:  60, color: "bg-blue-500"   },
+      { name: "Chopper", role: "Doctor",     emoji: "🦌", unlockAt:  75, color: "bg-pink-400"   },
+      { name: "Robin",   role: "Scholar",    emoji: "🌸", unlockAt:  90, color: "bg-purple-600" },
+      { name: "Franky",  role: "Shipwright", emoji: "🤖", unlockAt: 100, color: "bg-cyan-500"   },
+    ];
+
+    const ENCOURAGEMENTS = [
+      { text: "I'm gonna be King of the Pirates! You're gonna ace these exams!", author: "Luffy 👒" },
+      { text: "A wound that'd make an ordinary person unconscious... I won't lose to it. Nor will you to these tests!", author: "Zoro ⚔️" },
+      { text: "I'll draw a map of the world, and you'll map out your study plan! You can do it!", author: "Nami 🍊" },
+      { text: "I am a brave warrior of the sea! And you are a brave warrior of revision!", author: "Usopp 🎯" },
+      { text: "I'll cook up a feast for you when you finish! Keep studying hard!", author: "Sanji 🍳" },
+      { text: "Don't overwork yourself, take breaks! But when you study, give it your all!", author: "Chopper 🦌" },
+      { text: "Knowledge is the greatest treasure. Uncover all the answers in your exams.", author: "Robin 🌸" },
+      { text: "Your revision schedule is SUPER! Keep building that brain power!", author: "Franky 🤖" },
+      { text: "Set sail for top grades! The Grand Line of Finals awaits!", author: "The Sunny ☀️" },
+    ];
+
+    const EXAM_DATES = {
+      11: { title: "Math P1 & Geography",       color: "bg-red-500"   },
+      14: { title: "Chinese P2 & History",      color: "bg-red-500"   },
+      17: { title: "English P1 & Eng P3",       color: "bg-red-500"   },
+      21: { title: "Math P2 & Chinese Hist",    color: "bg-red-500"   },
+      24: { title: "IS & CES",                  color: "bg-red-500"   },
+      26: { title: "Chi P1 & Eng P2 (FINALS!)", color: "bg-amber-500" },
+    };
+
+    const STUDY_PLAN = {
+       6: ["Math Conventional Qs practice", "Geography Textbook Review"],
+       7: ["Math Problem Solving", "Geography Learning Package Review"],
+       8: ["Full Math Paper 1 Mock", "Geography Worksheets Review"],
+       9: ["Geography Book 3 Intensive Review", "Light Math review"],
+      10: ["Chinese Writing practice", "History Topic 6 review"],
+      11: ["EXAM DAY 1: Math P1 & Geog", "Light review in the evening"],
+      12: ["Chinese Essay Writing", "History Topic 8 review"],
+      13: ["Chinese Writing (Vocab)", "History Full Review (Topic 6 & 8)"],
+      14: ["EXAM DAY 2: Chinese P2 & History", "Math MCQs practice in the evening"],
+      15: ["English Reading practice", "English Grammar (Tenses, Passive Voice)"],
+      16: ["English Listening", "English Grammar (Speech, Questions)"],
+      17: ["EXAM DAY 3: English P1 & P3", "Rest and Recover!"],
+      18: ["Math 36 MCQs Mock practice", "Chinese History p.70-120 review"],
+      19: ["Math MCQs Speed Drill", "Chinese History p.121-181 review"],
+      20: ["Math MCQ final check", "Chinese History worksheets review"],
+      21: ["EXAM DAY 4: Math P2 & Chinese History", "Prepare for Science"],
+      22: ["IS Book 2A Units 7 & 8", "CES Module 2.3"],
+      23: ["IS Book 2B Units 9 & 10", "CES Module 2.4"],
+      24: ["EXAM DAY 5: Integrated Science & CES", "Almost there!"],
+      25: ["Chinese 卷一 指定篇章 Intensive", "English Writing text types practice"],
+      26: ["EXAM DAY 6: Chinese P1 & English P2! YOU MADE IT!"],
+    };
+
+    const BASE_TASKS = [
+      { id: 'eng_1',   subject: 'English',     category: 'Paper 1',     text: 'Reading Comprehension (2 pieces)' },
+      { id: 'eng_2',   subject: 'English',     category: 'Paper 1',     text: 'Grammar: Tenses & Passive voice' },
+      { id: 'eng_3',   subject: 'English',     category: 'Paper 1',     text: 'Grammar: Participle clauses & Speech' },
+      { id: 'eng_4',   subject: 'English',     category: 'Paper 1',     text: 'Grammar: Indirect & Rhetorical questions' },
+      { id: 'eng_9',   subject: 'English',     category: 'Paper 2',     text: 'Text Types: Email, Essay, Story, Profile' },
+      { id: 'eng_13',  subject: 'English',     category: 'Paper 3',     text: 'Listening: Short & Integrated tasks' },
+      { id: 'eng_15',  subject: 'English',     category: 'Paper 4',     text: 'Speaking: Group Discussion & Reading' },
+      { id: 'chi_1',   subject: 'Chinese',     category: '卷一：閱讀',  text: '白話文 & 文言文閱讀理解' },
+      { id: 'chi_3',   subject: 'Chinese',     category: '卷一：閱讀',  text: '指定篇章:《為學一首示子姪》,《說「勤」》' },
+      { id: 'chi_5',   subject: 'Chinese',     category: '卷一：閱讀',  text: '指定篇章:《虞美人》,《水調歌頭》' },
+      { id: 'chi_7',   subject: 'Chinese',     category: '卷一：閱讀',  text: '語文知識: 詞彙/成語/修辭 (p.61-68, p.78-84)' },
+      { id: 'chi_9',   subject: 'Chinese',     category: '卷二：寫作',  text: '實用文: 建議書, 公函 (≥300字)' },
+      { id: 'chi_11',  subject: 'Chinese',     category: '卷二：寫作',  text: '命題寫作: 借景抒情, 議論文 (≥600字)' },
+      { id: 'chi_13',  subject: 'Chinese',     category: '卷三：說話',  text: '意見題 & 爭議題' },
+      { id: 'math_1',  subject: 'Mathematics', category: 'Concepts',    text: 'Prerequisite: S.1 Topics (Algebra, Geometry)' },
+      { id: 'math_2',  subject: 'Mathematics', category: 'Concepts',    text: 'Book 2A & Book 2B (All Topics)' },
+      { id: 'math_4',  subject: 'Mathematics', category: 'Papers',      text: 'Paper 1 (Short & Conventional) & Paper 2 (MCQs)' },
+      { id: 'is_1',    subject: 'Science',     category: 'Book 2A/B',   text: 'Unit 7 & 8 (Exclude Extensions)' },
+      { id: 'is_3',    subject: 'Science',     category: 'Book 2A/B',   text: 'Unit 9, 10.1, 10.2 (Exclude Extensions)' },
+      { id: 'ces_1',   subject: 'C.E.S.',      category: 'Modules',     text: 'Module 2.3 Public Finance (Points 1-3)' },
+      { id: 'ces_2',   subject: 'C.E.S.',      category: 'Modules',     text: 'Module 2.4 Economic Performance (Points 1-2)' },
+      { id: 'geog_1',  subject: 'Geography',   category: 'Food Problem', text: 'Textbook: Unit 1.1-1.2, 2.1-2.3' },
+      { id: 'geog_3',  subject: 'Geography',   category: 'Food Problem', text: 'Learning Package: Unit 3.1-4.2' },
+      { id: 'geog_5',  subject: 'Geography',   category: 'Food Problem', text: 'Learning Package: Unit 5.1-5.5' },
+      { id: 'hist_1',  subject: 'History',     category: 'Topics',      text: 'Topic 6: Colonial expansion (TB p.22-30, 44-54)' },
+      { id: 'hist_3',  subject: 'History',     category: 'Topics',      text: 'Topic 8: HK Growth to late 19th c. (TB p.6-13, 30-36)' },
+      { id: 'chist_1', subject: 'Chin. Hist',  category: 'Main',        text: '明代君主集權 至 洋務運動 (TB p.70-181)' },
+      { id: 'chist_2', subject: 'Chin. Hist',  category: 'Main',        text: '注意: 不考 p.86-92 及 p.166-173' },
+      { id: 'chist_3', subject: 'Chin. Hist',  category: 'Supp.',       text: '【香港追昔: 元代至清初】 & 【明代北京】工作紙' },
+    ].map(t => ({ ...t, completed: false }));
+
+    /* June 1 2025 = Sunday → getDay() = 0, so no blank prefix cells needed.
+       Computed dynamically so the calendar stays correct if copy-pasted for another month. */
+    const JUNE_START_DOW = new Date(2025, 5, 1).getDay();
+
+    /* ── App ─────────────────────────────────────────────────── */
+    function App() {
+      const [tasks, setTasks] = useState(() => {
+        try {
+          const saved = localStorage.getItem('op_exam_tracker_v5');
+          if (saved) return JSON.parse(saved);
+        } catch (_) {}
+        return BASE_TASKS;
+      });
+
+      const [activeTab,    setActiveTab]    = useState('quests');
+      const [activeSubject,setActiveSubject]= useState('All');
+      const [quote,        setQuote]        = useState(ENCOURAGEMENTS[0]);
+      const [quoteKey,     setQuoteKey]     = useState(0);
+      const [toast,        setToast]        = useState({ visible: false, msg: '', unlock: false });
+      const [selectedDay,  setSelectedDay]  = useState(null);
+      const [resetConfirm, setResetConfirm] = useState(false);
+
+      useEffect(() => {
+        try { localStorage.setItem('op_exam_tracker_v5', JSON.stringify(tasks)); } catch (_) {}
+      }, [tasks]);
+
+      /* ── Derived ─────────────────────────────────────────── */
+      const completedCount  = useMemo(() => tasks.filter(t => t.completed).length, [tasks]);
+      const progressPercent = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
+      const currentBounty   = completedCount * 150_000;
+
+      const subjects        = useMemo(() => ['All', ...new Set(tasks.map(t => t.subject))], [tasks]);
+      const displayedTasks  = useMemo(
+        () => activeSubject === 'All' ? tasks : tasks.filter(t => t.subject === activeSubject),
+        [tasks, activeSubject]
+      );
+
+      /* Days until next exam (null when all exams have passed) */
+      const nextExam = useMemo(() => {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        for (const day of Object.keys(EXAM_DATES).map(Number).sort((a,b) => a-b)) {
+          const d = new Date(2025, 5, day);
+          if (d >= today) {
+            const days = Math.ceil((d - today) / 86_400_000);
+            return { day, ...EXAM_DATES[day], days };
+          }
+        }
+        return null;
+      }, []);
+
+      /* ── Helpers ─────────────────────────────────────────── */
+      const fireToast = (msg, unlock = false, ms = 2500) => {
+        setToast({ visible: true, msg, unlock });
+        setTimeout(() => setToast(t => ({ ...t, visible: false })), ms);
+      };
+
+      const bumpQuote = () => {
+        setQuote(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]);
+        setQuoteKey(k => k + 1);
+      };
+
+      const toggleTask = useCallback((id) => {
+        setTasks(prev => {
+          const next       = prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+          const nowDone    = next.find(t => t.id === id).completed;
+          if (!nowDone) return next;
+
+          /* Use next.length (not a stale outer value) for accurate percentage */
+          const newPct   = Math.round(next.filter(t => t.completed).length / next.length * 100);
+          const unlocked = CREW_MEMBERS.find(c => c.unlockAt === newPct);
+          bumpQuote();
+          if (unlocked) fireToast(`${unlocked.emoji} ${unlocked.name} joined your crew!`, true, 3500);
+          else          fireToast('Bounty Increased! ฿150,000 added!', false, 2000);
+          return next;
+        });
+      }, []);
+
+      const resetAll = () => {
+        setTasks(BASE_TASKS);
+        setResetConfirm(false);
+        fireToast('Progress reset. Set sail again! ⚓');
+      };
+
+      /* ── Calendar ────────────────────────────────────────── */
+      const renderCalendar = () => {
+        const cells = [];
+        /* Blank offset so day 1 lands on the right column */
+        for (let i = 0; i < JUNE_START_DOW; i++)
+          cells.push(<div key={`b${i}`} className="h-24" />);
+
+        for (let day = 1; day <= 30; day++) {
+          const exam       = EXAM_DATES[day];
+          const plan       = STUDY_PLAN[day];
+          const clickable  = exam || plan;
+          const isSelected = selectedDay === day;
+          cells.push(
+            <div
+              key={day}
+              onClick={() => clickable && setSelectedDay(d => d === day ? null : day)}
+              role={clickable ? 'button' : undefined}
+              aria-pressed={isSelected || undefined}
+              className={`relative p-2 h-24 rounded border flex flex-col overflow-hidden select-none transition-all duration-200
+                ${clickable ? 'cursor-pointer' : 'cursor-default'}
+                ${isSelected
+                    ? 'ring-4 ring-amber-500 scale-105 z-10 bg-amber-100 shadow-xl'
+                    : exam
+                      ? 'bg-red-50 border-red-300 hover:bg-red-100'
+                      : plan
+                        ? 'bg-white border-amber-200 hover:bg-amber-50'
+                        : 'bg-amber-50/50 border-amber-100 opacity-60'
+                }`}
+            >
+              <span className={`font-black text-sm ${exam ? 'text-red-700' : 'text-amber-900'}`}>{day}</span>
+              {exam && (
+                <div className={`mt-1 text-[9px] md:text-[10px] font-bold text-white px-1 py-0.5 rounded leading-tight ${exam.color}`}>
+                  {exam.title}
+                </div>
+              )}
+              {!exam && plan && (
+                <div className="mt-1 text-[10px] text-amber-700 leading-tight line-clamp-2">
+                  📝 {plan[0]}
+                </div>
+              )}
+              {day === 26 && (
+                <div className="absolute -bottom-1 -right-2 rotate-12 opacity-40 pointer-events-none">
+                  <StrawHatIcon size={36} />
+                </div>
+              )}
+            </div>
+          );
+        }
+        return cells;
+      };
+
+      /* ── Render ──────────────────────────────────────────── */
+      return (
+        <div className="min-h-screen font-sans text-amber-900 pb-10" style={{ backgroundColor: '#fde68a' }}>
+
+          {/* Toast */}
+          <div className={`fixed top-4 right-4 z-50 transition-all duration-300
+            ${toast.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+            <div className={`px-6 py-3 rounded-full shadow-2xl border-4 font-bold flex items-center gap-2
+              ${toast.unlock
+                ? 'bg-green-100 border-green-600 text-green-900'
+                : 'bg-amber-100 border-amber-600 text-amber-900'}`}>
+              {toast.unlock
+                ? <UnlockIcon size={20} className="text-green-600" />
+                : <Flame size={20} className="text-red-600" />}
+              {toast.msg}
+            </div>
+          </div>
+
+          {/* Header */}
+          <header className="bg-[#fef3c7] border-b-8 border-amber-800 shadow-md p-4 md:p-6">
+            <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-amber-100 rounded-full p-2 border-4 border-amber-800 shadow-inner flex-shrink-0">
+                  <JollyRogerIcon size={60} />
+                </div>
+                <div>
+                  <h1 className="text-3xl md:text-5xl font-black text-amber-900 uppercase tracking-tighter"
+                      style={{ fontFamily: 'serif' }}>
+                    Wanted: Top Grades
+                  </h1>
+                  <p className="text-amber-700 font-bold tracking-widest uppercase text-xs md:text-sm">
+                    Ho Lap College Grand Line · 2025-2026
+                  </p>
+                  {nextExam && (
+                    <p className="text-xs font-bold text-red-700 mt-1 flex items-center gap-1">
+                      <ClockIcon size={13} />
+                      {nextExam.days === 0
+                        ? `TODAY: ${nextExam.title}`
+                        : nextExam.days === 1
+                          ? `TOMORROW: ${nextExam.title}`
+                          : `${nextExam.days} days until ${nextExam.title}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <div className="bg-[#fdf3c7] border-4 border-double border-amber-900 p-4 rotate-2 shadow-lg text-center min-w-[200px]">
+                  <p className="text-xs uppercase font-black text-amber-800 mb-1 tracking-widest border-b border-amber-300 pb-1">
+                    Current Bounty
+                  </p>
+                  <p className="text-3xl font-black text-red-700 flex items-center justify-center gap-1 tracking-tighter"
+                     style={{ fontFamily: 'serif' }}>
+                    <span className="text-xl">฿</span>{currentBounty.toLocaleString()}
+                  </p>
+                </div>
+                {resetConfirm ? (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-red-700 font-bold">Reset all progress?</span>
+                    <button onClick={resetAll}
+                      className="bg-red-600 text-white px-3 py-1 rounded-full font-bold hover:bg-red-700 transition">
+                      Yes
+                    </button>
+                    <button onClick={() => setResetConfirm(false)}
+                      className="bg-amber-200 text-amber-900 px-3 py-1 rounded-full font-bold hover:bg-amber-300 transition">
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setResetConfirm(true)}
+                    className="text-[10px] text-amber-600 underline underline-offset-2 hover:text-red-600 transition font-medium">
+                    Reset progress
+                  </button>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+
+            {/* Quote — key forces remount + fade-in on every change */}
+            <div key={quoteKey} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-md border-2 border-amber-300 flex items-start gap-3 fade-in">
+              <Quote size={32} className="text-amber-300 flex-shrink-0 mt-1" />
+              <div>
+                <p className="text-base md:text-lg font-black text-amber-900 italic">
+                  &ldquo;{quote.text}&rdquo;
+                </p>
+                <p className="text-xs font-bold text-red-600 uppercase tracking-widest mt-2">
+                  — {quote.author}
+                </p>
+              </div>
+            </div>
+
+            {/* Crew */}
+            <div className="bg-white/90 rounded-2xl p-4 shadow-xl border-4 border-amber-800">
+              <h2 className="text-base font-black text-amber-900 mb-3 flex items-center gap-2 border-b-2 border-amber-200 pb-2">
+                <Ship size={20} className="text-amber-700" />
+                Pirate Crew ({CREW_MEMBERS.filter(c => progressPercent >= c.unlockAt).length}/{CREW_MEMBERS.length})
+              </h2>
+              <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                {CREW_MEMBERS.map(crew => {
+                  const unlocked = progressPercent >= crew.unlockAt;
+                  return (
+                    <div key={crew.name} title={unlocked ? `${crew.name} – ${crew.role}` : `Unlock at ${crew.unlockAt}%`}
+                         className="flex flex-col items-center">
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-2 shadow-sm transition-all duration-500
+                        ${unlocked
+                          ? `${crew.color} border-amber-900 shadow-md scale-110`
+                          : 'bg-slate-200 border-slate-300 opacity-50 grayscale'}`}>
+                        {unlocked ? crew.emoji : '🔒'}
+                      </div>
+                      <span className={`text-[10px] font-bold mt-1 tracking-wider uppercase
+                        ${unlocked ? 'text-amber-900' : 'text-slate-400'}`}>
+                        {unlocked ? crew.name : `${crew.unlockAt}%`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="bg-white/90 rounded-2xl p-4 md:p-6 shadow-xl border-4 border-amber-800">
+              <div className="flex justify-between items-end mb-2">
+                <h2 className="text-lg md:text-xl font-black text-amber-900 flex items-center gap-2">
+                  <MapIcon size={24} className="text-amber-700" /> Voyage Progress
+                </h2>
+                <span className="text-xl md:text-2xl font-black text-red-600">{progressPercent}%</span>
+              </div>
+              <div className="w-full h-8 bg-amber-100 rounded-full border-2 border-amber-900 shadow-inner overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-red-500 to-amber-400 transition-all duration-700 ease-out flex items-center justify-end pr-2"
+                     style={{ width: `${progressPercent}%` }}>
+                  {progressPercent > 5 && <Ship size={18} className="text-amber-900" />}
+                </div>
+              </div>
+              <p className="text-sm text-amber-700 mt-2 text-right font-bold">
+                {completedCount} of {tasks.length} islands conquered!
+              </p>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 bg-amber-200/50 p-2 rounded-xl border border-amber-300">
+              {[
+                { key: 'quests',   label: 'Syllabus Quests',   Icon: CheckSquare },
+                { key: 'calendar', label: 'Log Pose Calendar', Icon: CalIcon     },
+              ].map(({ key, label, Icon }) => (
+                <button key={key} onClick={() => setActiveTab(key)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-black uppercase tracking-wider transition-all duration-200
+                    ${activeTab === key
+                      ? 'bg-amber-700 text-amber-50 shadow-inner'
+                      : 'bg-white text-amber-800 hover:bg-amber-100 shadow'}`}>
+                  <Icon size={20} />
+                  <span className="hidden sm:inline">{label}</span>
+                  <span className="sm:hidden">{label.split(' ')[0]}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* ── Quests tab ── */}
+            {activeTab === 'quests' && (
+              <div className="bg-white/90 rounded-2xl shadow-xl border-4 border-amber-800 overflow-hidden">
+
+                {/* Subject filter */}
+                <div className="p-4 bg-amber-100 border-b-2 border-amber-800">
+                  <div className="flex flex-wrap gap-2">
+                    {subjects.map(sub => {
+                      const subTasks = sub === 'All' ? tasks : tasks.filter(t => t.subject === sub);
+                      const subDone  = subTasks.filter(t => t.completed).length;
+                      const active   = activeSubject === sub;
+                      const allDone  = sub !== 'All' && subDone === subTasks.length;
+                      return (
+                        <button key={sub} onClick={() => setActiveSubject(sub)}
+                          className={`px-3 py-2 rounded-lg font-black text-xs uppercase tracking-wider transition-all duration-200 border-2
+                            ${active
+                              ? 'bg-amber-800 text-white border-amber-900 shadow-md scale-105'
+                              : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'}`}>
+                          {sub}
+                          {sub !== 'All' && (
+                            <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full
+                              ${allDone
+                                ? 'bg-green-500 text-white'
+                                : active
+                                  ? 'bg-amber-600 text-white'
+                                  : 'bg-amber-200 text-amber-800'}`}>
+                              {subDone}/{subTasks.length}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* List header */}
+                <div className="p-4 bg-amber-50 border-b border-amber-200 flex justify-between items-center">
+                  <h3 className="font-black text-amber-900 uppercase tracking-widest text-base flex items-center gap-2">
+                    <BookOpen size={20} className="text-red-700" />
+                    {activeSubject === 'All' ? 'Grand Line Quests' : `${activeSubject} Quests`}
+                  </h3>
+                  <span className="text-xs font-black text-amber-100 bg-amber-800 px-3 py-1 rounded-full border border-amber-900">
+                    {displayedTasks.filter(t => t.completed).length} / {displayedTasks.length} Done
+                  </span>
+                </div>
+
+                {/* Tasks */}
+                <div className="divide-y-2 divide-amber-100 max-h-[60vh] overflow-y-auto p-2 bg-white">
+                  {displayedTasks.map(task => (
+                    <div key={task.id}
+                      onClick={() => toggleTask(task.id)}
+                      role="checkbox"
+                      aria-checked={task.completed}
+                      tabIndex={0}
+                      onKeyDown={e => (e.key === ' ' || e.key === 'Enter') && toggleTask(task.id)}
+                      className={`p-3 md:p-4 rounded-xl flex items-start gap-3 cursor-pointer transition-all duration-200 mb-2 border-2 outline-none focus-visible:ring-2 focus-visible:ring-amber-500
+                        ${task.completed
+                          ? 'bg-amber-50 border-amber-200 opacity-60'
+                          : 'bg-white border-amber-100 hover:border-amber-400 hover:shadow-md'}`}>
+                      <div className="mt-0.5 flex-shrink-0">
+                        {task.completed
+                          ? <CheckCircle2 size={26} className="text-green-600 drop-shadow-sm" />
+                          : <Circle      size={26} className="text-amber-300" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`text-sm md:text-base font-bold break-words
+                          ${task.completed
+                            ? 'text-amber-700 line-through decoration-amber-500 decoration-2'
+                            : 'text-amber-900'}`}>
+                          {task.text}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {activeSubject === 'All' && (
+                            <span className="text-[9px] uppercase font-black text-white bg-red-700 px-2 py-0.5 rounded shadow-sm">
+                              {task.subject}
+                            </span>
+                          )}
+                          <span className="text-[9px] uppercase font-black text-amber-900 bg-amber-200 px-2 py-0.5 rounded shadow-sm">
+                            {task.category}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Calendar tab ── */}
+            {activeTab === 'calendar' && (
+              <div className="space-y-4">
+                <div className="bg-white/90 rounded-2xl p-4 md:p-6 shadow-xl border-4 border-amber-800">
+                  <div className="flex items-center justify-between mb-4 border-b-2 border-amber-200 pb-2 flex-wrap gap-2">
+                    <h2 className="text-xl md:text-2xl font-black text-amber-900 flex items-center gap-2"
+                        style={{ fontFamily: 'serif' }}>
+                      <Compass size={28} className="text-red-700" /> June 2025 · Examination Month
+                    </h2>
+                    <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold">
+                      <span className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500 rounded" /> Exam</span>
+                      <span className="flex items-center gap-1"><div className="w-3 h-3 bg-white border border-amber-300 rounded" /> Study</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2 text-center font-black text-amber-800 text-[10px] md:text-sm uppercase tracking-wider">
+                    {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d}>{d}</div>)}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 md:gap-2">
+                    {renderCalendar()}
+                  </div>
+                </div>
+
+                {selectedDay && (
+                  <div className="bg-amber-900 rounded-2xl p-5 shadow-2xl border-4 border-amber-500 text-amber-50 relative fade-in">
+                    <button onClick={() => setSelectedDay(null)}
+                      className="absolute top-3 right-3 bg-amber-800 hover:bg-amber-700 p-1 rounded-full transition">
+                      <XIcon size={20} />
+                    </button>
+                    <h3 className="text-xl md:text-2xl font-black text-amber-300 mb-4 flex items-center gap-2 border-b border-amber-700 pb-2">
+                      <Anchor size={24} /> Captain&apos;s Log: June {selectedDay}
+                    </h3>
+                    {EXAM_DATES[selectedDay] && (
+                      <div className="bg-red-600 border border-red-400 p-4 rounded-lg mb-4 text-center">
+                        <p className="text-red-100 font-bold uppercase tracking-widest text-xs mb-1">⚠ Enemy Encounter</p>
+                        <p className="text-lg md:text-xl font-black">{EXAM_DATES[selectedDay].title}</p>
+                      </div>
+                    )}
+                    {STUDY_PLAN[selectedDay] && (
+                      <div className="space-y-3">
+                        <p className="font-bold uppercase tracking-wider text-amber-400 text-xs">Recommended Training:</p>
+                        {STUDY_PLAN[selectedDay].map((plan, i) => (
+                          <div key={i} className="flex items-start gap-3 bg-amber-800/50 p-3 rounded-lg border border-amber-800">
+                            <MapIcon size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                            <span className="font-semibold text-sm">{plan}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+          </main>
+        </div>
