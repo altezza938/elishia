@@ -437,14 +437,15 @@
       const [toast,        setToast]        = useState({ visible: false, msg: '', unlock: false });
       const [selectedDay,  setSelectedDay]  = useState(null);
       const [resetConfirm, setResetConfirm] = useState(false);
-      const [syncKey,      setSyncKey]      = useState(() => localStorage.getItem('op_sync_key') || '');
+      const DEFAULT_KEY = '$2a$10$42Ij0k7AhEmAXDgjAeZfv.lBB5fPC9V4dNmFVosmI95KN7uWXnuzG';
+      const [syncKey,      setSyncKey]      = useState(() => localStorage.getItem('op_sync_key') || DEFAULT_KEY);
       const [syncBinId,    setSyncBinId]    = useState(() => localStorage.getItem('op_sync_bin') || '');
       const [syncStatus,   setSyncStatus]   = useState('idle');
       const [showSync,     setShowSync]     = useState(false);
       const [syncInputKey, setSyncInputKey] = useState('');
       const [syncInputBin, setSyncInputBin] = useState('');
       const skipSave   = useRef(true);
-      const syncKeyRef = useRef(localStorage.getItem('op_sync_key') || '');
+      const syncKeyRef = useRef(localStorage.getItem('op_sync_key') || DEFAULT_KEY);
       const syncBinRef = useRef(localStorage.getItem('op_sync_bin') || '');
 
       /* Save to localStorage; cloud-sync on every non-skipped change */
@@ -461,22 +462,37 @@
           .catch(() => setSyncStatus('error'));
       }, [tasks]);
 
-      /* Load from cloud on first mount */
+      /* On mount: load from existing bin OR auto-create one if key is set but no bin yet */
       useEffect(() => {
-        if (!syncKeyRef.current || !syncBinRef.current) return;
-        setSyncStatus('syncing');
-        fetch(`${JSONBIN}/b/${syncBinRef.current}/latest`, {
-          headers: { 'X-Master-Key': syncKeyRef.current }
-        })
-          .then(r => r.ok ? r.json() : Promise.reject())
-          .then(({ record }) => {
-            if (Array.isArray(record?.tasks)) {
-              skipSave.current = true;
-              setTasks(record.tasks);
-            }
-            setSyncStatus('ok');
+        if (!syncKeyRef.current) return;
+        if (syncBinRef.current) {
+          setSyncStatus('syncing');
+          fetch(`${JSONBIN}/b/${syncBinRef.current}/latest`, {
+            headers: { 'X-Master-Key': syncKeyRef.current }
           })
-          .catch(() => setSyncStatus('error'));
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(({ record }) => {
+              if (Array.isArray(record?.tasks)) { skipSave.current = true; setTasks(record.tasks); }
+              setSyncStatus('ok');
+            })
+            .catch(() => setSyncStatus('error'));
+        } else {
+          setSyncStatus('syncing');
+          fetch(`${JSONBIN}/b`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Master-Key': syncKeyRef.current,
+                       'X-Bin-Name': 'op-exam-tracker', 'X-Bin-Private': 'true' },
+            body: JSON.stringify({ tasks })
+          })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(({ metadata }) => {
+              syncBinRef.current = metadata.id;
+              localStorage.setItem('op_sync_key', syncKeyRef.current);
+              localStorage.setItem('op_sync_bin', metadata.id);
+              setSyncBinId(metadata.id); setSyncStatus('ok');
+            })
+            .catch(() => setSyncStatus('error'));
+        }
       }, []);
 
       /* ── Derived ─────────────────────────────────────────── */
