@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="One Piece themed exam tracker – Ho Lap College 2025-2026 Finals" />
   <title>Grand Line Exam Tracker · Elishia</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
@@ -194,7 +194,7 @@
       /* ── Derived ─────────────────────────────────────────── */
       const completedCount  = useMemo(() => tasks.filter(t => t.completed).length, [tasks]);
       const progressPercent = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
-      const currentBounty   = completedCount * 150_000;
+      const currentBounty   = completedCount * 150000;
 
       const subjects        = useMemo(() => ['All', ...new Set(tasks.map(t => t.subject))], [tasks]);
       const displayedTasks  = useMemo(
@@ -208,7 +208,7 @@
         for (const day of Object.keys(EXAM_DATES).map(Number).sort((a,b) => a-b)) {
           const d = new Date(2025, 5, day);
           if (d >= today) {
-            const days = Math.ceil((d - today) / 86_400_000);
+            const days = Math.ceil((d - today) / 86400000);
             return { day, ...EXAM_DATES[day], days };
           }
         }
@@ -601,3 +601,10 @@
 
           </main>
         </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
