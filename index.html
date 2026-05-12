@@ -445,9 +445,32 @@
       { id: 'chist_3', subject: 'Chin. Hist',  category: 'Supp.',       text: '【香港追昔: 元代至清初】 & 【明代北京】工作紙' },
     ].map(t => ({ ...t, completed: false }));
 
-    /* June 1 2025 = Sunday → getDay() = 0, so no blank prefix cells needed.
-       Computed dynamically so the calendar stays correct if copy-pasted for another month. */
+    /* May 1 2025 = Thursday (4). June 1 2025 = Sunday (0). */
+    const MAY_START_DOW  = new Date(2025, 4, 1).getDay();
     const JUNE_START_DOW = new Date(2025, 5, 1).getDay();
+
+    const MAY_STUDY_PLAN = {
+      12: ["Start now! Plan your study timetable 🗺️", "Overview all subjects — find weak spots"],
+      13: ["Math 2A: Topics 1-3 review", "Math 2A: Topics 4-6 review"],
+      14: ["Math 2B: All topics overview", "Math: Prerequisite S.1 check"],
+      15: ["Math Paper 1 mock (Short Qs)", "Math Paper 1 (Conventional Qs)"],
+      16: ["Math Paper 2: MCQ speed drill", "Geography Textbook Unit 1.1-1.2 review"],
+      17: ["Geography Textbook Unit 2.1-2.3", "Geography Learning Package Unit 3.1-4.2"],
+      18: ["Geography LP Unit 5.1-5.5 review", "Geography worksheets check"],
+      19: ["Math MCQ: 36-question timed mock", "Chinese P1: 白話文 reading comprehension"],
+      20: ["Chinese: 指定篇章 — 《為學》《說勤》", "Chinese: 指定篇章 — 《虞美人》《水調歌頭》"],
+      21: ["Chinese P2: 實用文 practice (建議書/公函)", "Chinese P2: 命題寫作 outline practice"],
+      22: ["English P1: Tenses & Passive Voice", "English P1: Participle clauses & Speech"],
+      23: ["English P1: Indirect & Rhetorical Qs", "English P3: Listening short tasks"],
+      24: ["English P2: Text types — Email & Essay", "English P4: Speaking practice"],
+      25: ["History Topic 6: Colonial expansion review", "History Topic 8: HK Growth review"],
+      26: ["Chinese History p.70-120 (明代至太平天國)", "Chinese History p.121-181 (洋務至義和團)"],
+      27: ["IS Book 2A: Units 7 & 8", "IS Book 2B: Unit 9"],
+      28: ["IS Book 2B: Units 10.1 & 10.2", "CES Module 2.3: Public Finance"],
+      29: ["CES Module 2.4: Economic Performance", "Full weak-subject check 🔍"],
+      30: ["Final Math MCQ speed drill", "Last review before June — you've got this! ⚓"],
+      31: ["Chinese History worksheets", "Rest well tonight. Exams start June 11! 🏴‍☠️"],
+    };
 
     /* ── App ─────────────────────────────────────────────────── */
     function App() {
@@ -465,6 +488,7 @@
       const [quoteKey,     setQuoteKey]     = useState(0);
       const [toast,        setToast]        = useState({ visible: false, msg: '', unlock: false });
       const [selectedDay,  setSelectedDay]  = useState(null);
+      const [selectedMonth,setSelectedMonth]= useState('may');
       const [resetConfirm, setResetConfirm] = useState(false);
       const DEFAULT_KEY = '$2a$10$42Ij0k7AhEmAXDgjAeZfv.lBB5fPC9V4dNmFVosmI95KN7uWXnuzG';
       const [syncKey,      setSyncKey]      = useState(() => localStorage.getItem('op_sync_key') || DEFAULT_KEY);
@@ -624,21 +648,27 @@
       };
 
       /* ── Calendar ────────────────────────────────────────── */
-      const renderCalendar = () => {
+      const renderCalendar = (month) => {
+        const isMay     = month === 'may';
+        const startDOW  = isMay ? MAY_START_DOW : JUNE_START_DOW;
+        const totalDays = isMay ? 31 : 30;
+        const planMap   = isMay ? MAY_STUDY_PLAN : STUDY_PLAN;
         const cells = [];
-        /* Blank offset so day 1 lands on the right column */
-        for (let i = 0; i < JUNE_START_DOW; i++)
+        for (let i = 0; i < startDOW; i++)
           cells.push(<div key={`b${i}`} className="h-24" />);
-
-        for (let day = 1; day <= 30; day++) {
-          const exam       = EXAM_DATES[day];
-          const plan       = STUDY_PLAN[day];
+        for (let day = 1; day <= totalDays; day++) {
+          const exam       = !isMay && EXAM_DATES[day];
+          const plan       = planMap[day];
           const clickable  = exam || plan;
-          const isSelected = selectedDay === day;
+          const isSelected = selectedDay === day && selectedMonth === month;
           cells.push(
             <div
               key={day}
-              onClick={() => clickable && setSelectedDay(d => d === day ? null : day)}
+              onClick={() => {
+                if (!clickable) return;
+                if (selectedDay === day && selectedMonth === month) { setSelectedDay(null); }
+                else { setSelectedDay(day); setSelectedMonth(month); }
+              }}
               role={clickable ? 'button' : undefined}
               aria-pressed={isSelected || undefined}
               className={`relative p-2 h-24 rounded border flex flex-col overflow-hidden select-none transition-all duration-200
@@ -663,7 +693,7 @@
                   📝 {plan[0]}
                 </div>
               )}
-              {day === 26 && (
+              {!isMay && day === 26 && (
                 <div className="absolute -bottom-1 -right-2 rotate-12 opacity-40 pointer-events-none">
                   <StrawHatIcon size={36} />
                 </div>
@@ -1000,13 +1030,26 @@
             {activeTab === 'calendar' && (
               <div className="space-y-4">
                 <div className="bg-white/90 rounded-2xl p-4 md:p-6 shadow-xl border-4 border-amber-800">
+                  {/* Month toggle */}
+                  <div className="flex gap-2 mb-4">
+                    {[['may','⚓ May 2025'],['june','💥 June 2025']].map(([m, label]) => (
+                      <button key={m} onClick={() => { setSelectedMonth(m); setSelectedDay(null); }}
+                        className={`flex-1 py-2 rounded-xl font-black text-sm transition-all border-2
+                          ${selectedMonth === m
+                            ? 'bg-amber-800 text-amber-100 border-amber-600 shadow-lg scale-105'
+                            : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex items-center justify-between mb-4 border-b-2 border-amber-200 pb-2 flex-wrap gap-2">
                     <h2 className="text-xl md:text-2xl font-black text-amber-900 flex items-center gap-2"
                         style={{ fontFamily: 'serif' }}>
-                      <Compass size={28} className="text-red-700" /> June 2025 · Examination Month
+                      <Compass size={28} className="text-red-700" />
+                      {selectedMonth === 'may' ? 'May 2025 · Training Month' : 'June 2025 · Examination Month'}
                     </h2>
                     <div className="flex items-center gap-3 text-[10px] md:text-xs font-bold">
-                      <span className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500 rounded" /> Exam</span>
+                      {selectedMonth === 'june' && <span className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500 rounded" /> Exam</span>}
                       <span className="flex items-center gap-1"><div className="w-3 h-3 bg-white border border-amber-300 rounded" /> Study</span>
                     </div>
                   </div>
@@ -1015,7 +1058,7 @@
                     {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d}>{d}</div>)}
                   </div>
                   <div className="grid grid-cols-7 gap-1 md:gap-2">
-                    {renderCalendar()}
+                    {renderCalendar(selectedMonth)}
                   </div>
                 </div>
 
@@ -1026,18 +1069,18 @@
                       <XIcon size={20} />
                     </button>
                     <h3 className="text-xl md:text-2xl font-black text-amber-300 mb-4 flex items-center gap-2 border-b border-amber-700 pb-2">
-                      <Anchor size={24} /> Captain&apos;s Log: June {selectedDay}
+                      <Anchor size={24} /> Captain&apos;s Log: {selectedMonth === 'may' ? 'May' : 'June'} {selectedDay}
                     </h3>
-                    {EXAM_DATES[selectedDay] && (
+                    {selectedMonth === 'june' && EXAM_DATES[selectedDay] && (
                       <div className="bg-red-600 border border-red-400 p-4 rounded-lg mb-4 text-center">
                         <p className="text-red-100 font-bold uppercase tracking-widest text-xs mb-1">⚠ Enemy Encounter</p>
                         <p className="text-lg md:text-xl font-black">{EXAM_DATES[selectedDay].title}</p>
                       </div>
                     )}
-                    {STUDY_PLAN[selectedDay] && (
+                    {(selectedMonth === 'may' ? MAY_STUDY_PLAN : STUDY_PLAN)[selectedDay] && (
                       <div className="space-y-3">
                         <p className="font-bold uppercase tracking-wider text-amber-400 text-xs">Recommended Training:</p>
-                        {STUDY_PLAN[selectedDay].map((plan, i) => (
+                        {(selectedMonth === 'may' ? MAY_STUDY_PLAN : STUDY_PLAN)[selectedDay].map((plan, i) => (
                           <div key={i} className="flex items-start gap-3 bg-amber-800/50 p-3 rounded-lg border border-amber-800">
                             <MapIcon size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
                             <span className="font-semibold text-sm">{plan}</span>
